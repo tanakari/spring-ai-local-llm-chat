@@ -1,8 +1,9 @@
 services:
   ovms:
     image: openvino/model_server:2026.4.0-gpu
-    # .env の LOCAL_UID/LOCAL_GID が必須
-    user: "${LOCAL_UID}:${LOCAL_GID}"
+
+    # Compose が .env から読み込むホストユーザーの UID/GID
+    user: "${LOCAL_UID:?LOCAL_UID を設定してください}:${LOCAL_GID:?LOCAL_GID を設定してください}"
 
     ports:
       - "127.0.0.1:8000:8000"
@@ -13,8 +14,7 @@ services:
     volumes:
       - /usr/lib/wsl:/usr/lib/wsl:ro
       - ./models:/models:rw
-    env_file:
-      - .env
+
     command:
       - --source_model
       - OpenVINO/gemma-4-E4B-it-int4-ov
@@ -32,7 +32,8 @@ services:
       - "false"
       - --rest_port
       - "8000"
-      # このモデルは GPU_ENABLE_LARGE_ALLOCATIONS=true が必須（false では起動失敗）
+      # Gemma 4 E4B の GPU 実行に必要な設定
       - --plugin_config
       - '{"GPU_ENABLE_LARGE_ALLOCATIONS": true}'
+
     restart: unless-stopped
