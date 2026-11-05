@@ -1,6 +1,8 @@
 package com.example.springai.localllmchat;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.model.openai.autoconfigure.OpenAiCommonProperties;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,9 +21,12 @@ public class ChatController {
 	/**
 	 * 質問の送信に使うクライアントを作成する。
 	 * @param builder Spring AI が自動設定するクライアントビルダー
+	 * @param connectionProperties OpenAI クライアントの共通接続設定
 	 */
-	public ChatController(ChatClient.Builder builder) {
-		this.chatClient = builder.build();
+	public ChatController(ChatClient.Builder builder, OpenAiCommonProperties connectionProperties) {
+		this.chatClient = builder
+			.defaultOptions(OpenAiChatOptions.builder().timeout(connectionProperties.getTimeout()))
+			.build();
 	}
 
 	/**
@@ -36,11 +41,15 @@ public class ChatController {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message is required");
 		}
 
-		String content = this.chatClient.prompt()
+		var response = this.chatClient.prompt()
 			.user(request.message())
 			.call()
-			.content();
-		return new ChatResponse(content);
+			.chatResponse();
+		if (response == null || response.getResult() == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "OVMS returned no answer");
+		}
+
+		return new ChatResponse(response.getResult().getOutput().getText());
 	}
 
 	/**

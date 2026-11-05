@@ -8,7 +8,7 @@ Spring Boot と Docker Compose で起動する OVMS を、同じ Ubuntu（WSL2�
 
 ```mermaid
 sequenceDiagram
-    participant Client as クライアント
+    participant Client as ブラウザ（Deep Chat）
     box Spring Boot :8080
         participant Controller as ChatController
         participant AI as Spring AI
@@ -33,6 +33,7 @@ Spring AI の OpenAI 用クライアントから、OVMS の OpenAI 互換 API �
 
 | ファイル | 役割 |
 | --- | --- |
+| `static/index.html` / `chat.js` | Deep Chat の画面と API への接続 |
 | `ChatController.java` | message の未指定・空白チェックと、Spring AI を使った回答の取得 |
 | `OvmsCompatibilityConfiguration.java` | OVMS 応答の不足する `id` を補完 |
 | `application.properties` | OVMS の接続先・モデル名を設定 |
@@ -95,22 +96,13 @@ spring.ai.openai.chat.model=${OVMS_MODEL:gemma4-e4b}
 
 ## 3. 質問する
 
-別のターミナルから実行します。
+ブラウザで http://localhost:8080/ を開き、質問を入力して送信します。Deep Chat を CDN（unpkg）から読み込むため、インターネット接続が必要です。
 
-```bash
-curl --fail-with-body -sS http://localhost:8080/api/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"message":"こんにちは"}'
-```
+画面にやりとりは表示されますが、モデルに送るのは今回の質問だけです。再読み込みすると表示履歴は消えます。
 
-応答例:
+### テスト用途の注意
 
-```json
-{"content":"こんにちは！何かお手伝いできることはありますか？"}
-```
-
-空の質問は HTTP 400 を返します。会話履歴は保持しません。
-OVMS が省略する応答の `id` は、アプリ内で補完しています。
+この画面は **ローカルのテスト専用** です。本番利用・外部公開はしないでください。使用する Deep Chat 2.5.1 には XSS（CVE-2026-108852）の報告があります。機密情報は入力せず、回答内の不審なリンクは開かないでください。[公式 Issue](https://github.com/OvidijusParsiunas/deep-chat/issues/522)
 
 ## 停止・ログ確認
 
