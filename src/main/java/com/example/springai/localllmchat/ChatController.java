@@ -4,10 +4,15 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.model.openai.autoconfigure.OpenAiCommonProperties;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Spring AI 経由で OVMS に質問を送り、回答を返す API。
@@ -35,14 +40,33 @@ public class ChatController {
 	 * @return モデルが生成した回答
 	 * @throws ResponseStatusException 質問が未指定または空白のみの場合
 	 */
-	@PostMapping("/api/chat")
+	@PostMapping(value = "/api/chat", consumes = MediaType.APPLICATION_JSON_VALUE)
 	public ChatResponse chat(@RequestBody ChatRequest request) {
-		if (request.message() == null || request.message().isBlank()) {
+		return answer(request.message(), null);
+	}
+
+	@PostMapping(value = "/api/chat", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ChatResponse chatWithImage(@RequestParam(name = "message", defaultValue = "") String message,
+			@RequestPart("files") MultipartFile image) {
+		if (image.isEmpty() || !(MediaType.IMAGE_PNG_VALUE.equals(image.getContentType())
+				|| MediaType.IMAGE_JPEG_VALUE.equals(image.getContentType()))) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PNG or JPEG image is required");
+		}
+		return answer(message.isBlank() ? "この画像を説明してください。" : message, image);
+	}
+
+	private ChatResponse answer(String message, MultipartFile image) {
+		if (message == null || message.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message is required");
 		}
 
 		var response = this.chatClient.prompt()
-			.user(request.message())
+			.user(user -> {
+				user.text(message);
+				if (image != null) {
+					user.media(MimeTypeUtils.parseMimeType(image.getContentType()), image.getResource());
+				}
+			})
 			.call()
 			.chatResponse();
 		if (response == null || response.getResult() == null) {

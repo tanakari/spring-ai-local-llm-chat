@@ -16,8 +16,9 @@
 <body>
   <h1>Local LLM Chat</h1>
   <p class="notice">ローカルのテスト専用です。Deep Chat 2.5.1 には XSS の報告があります。本番利用・外部公開は避け、機密情報を入力したり、回答内の不審なリンクを開いたりしないでください。</p>
-  <p>モデルに送るのは今回の質問だけです。再読み込みすると表示履歴は消えます。</p>
+  <p>PNG/JPEG画像を1枚（5MBまで）添付できます。モデルに送るのは今回の質問と画像だけです。</p>
   <deep-chat id="chat" aria-label="モデルへの質問"
+    images='{"files":{"maxNumberOfFiles":1,"acceptedFormats":".png,.jpg,.jpeg"}}'
     requestBodyLimits='{"maxMessages":1}'
     textInput='{"placeholder":{"text":"質問を入力してください"}}'>
   </deep-chat>
