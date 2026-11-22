@@ -96,7 +96,9 @@ spring.ai.openai.chat.model=${OVMS_MODEL:gemma4-e4b}
 
 ## 3. 質問する
 
-ブラウザで http://localhost:8080/ を開き、質問を入力して送信します。Deep Chat を CDN（unpkg）から読み込むため、インターネット接続が必要です。
+ブラウザで http://localhost:8080/ を開き、質問を入力して送信します。Deep Chat 2.5.1 とそのライセンスは `src/main/resources/static/lib/deep-chat/2.5.1/` に配置しています。
+
+バンドルの取得元は `https://unpkg.com/deep-chat@2.5.1/dist/deepChat.bundle.js` です。
 
 画面にやりとりは表示されますが、モデルに送るのは今回の質問だけです。再読み込みすると表示履歴は消えます。
 
