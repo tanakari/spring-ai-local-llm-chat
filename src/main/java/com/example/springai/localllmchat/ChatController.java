@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
  * Spring AI 経由で OVMS に質問を送り、回答を返す API。
  * 会話履歴は保持せず、リクエストごとに独立した質問として扱う。
  */
+@RequestMapping("/api/chat")
 @RestController
 public class ChatController {
 
@@ -40,12 +42,20 @@ public class ChatController {
 	 * @return モデルが生成した回答
 	 * @throws ResponseStatusException 質問が未指定または空白のみの場合
 	 */
-	@PostMapping(value = "/api/chat", consumes = MediaType.APPLICATION_JSON_VALUE)
+	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
 	public ChatResponse chat(@RequestBody ChatRequest request) {
 		return answer(request.message(), null);
 	}
 
-	@PostMapping(value = "/api/chat", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	/**
+	 * 5MB 以下の PNG または JPEG 画像と質問を受け取り、画像についての回答を返す。
+	 * 質問が空の場合は、画像の説明を依頼する。
+	 * @param message 画像についての質問。空の場合は既定の依頼文を使用する
+	 * @param image 解析する PNG または JPEG 画像（multipart フィールド名: files）
+	 * @return モデルが生成した回答
+	 * @throws ResponseStatusException 画像が空または PNG/JPEG 以外の場合
+	 */
+	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ChatResponse chatWithImage(@RequestParam(name = "message", defaultValue = "") String message,
 			@RequestPart("files") MultipartFile image) {
 		if (image.isEmpty() || !(MediaType.IMAGE_PNG_VALUE.equals(image.getContentType())
@@ -55,6 +65,13 @@ public class ChatController {
 		return answer(message.isBlank() ? "この画像を説明してください。" : message, image);
 	}
 
+	/**
+	 * 質問と任意の画像をモデルに送り、生成された回答を返す。
+	 * @param message モデルに送る質問
+	 * @param image 添付する画像。テキストのみの場合は null
+	 * @return モデルが生成した回答
+	 * @throws ResponseStatusException 質問が空白の場合は HTTP 400、OVMS から回答がない場合は HTTP 502
+	 */
 	private ChatResponse answer(String message, MultipartFile image) {
 		if (message == null || message.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message is required");
