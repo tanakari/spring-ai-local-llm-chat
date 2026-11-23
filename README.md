@@ -39,6 +39,17 @@ Spring AI の OpenAI 用クライアントから、OVMS の OpenAI 互換 API �
 | `application.properties` | OVMS の接続先・モデル名を設定 |
 | `compose.yaml` | OVMS の起動とモデル・GPU の設定 |
 
+### チャット API
+
+`POST /api/chat` は JSON と画像付きの multipart の両方を受け付けます。応答はどちらも `{"content":"回答"}` 形式です。
+
+| Content-Type | 入力 | 動作 |
+| --- | --- | --- |
+| `application/json` | `message`（空白以外が必須） | テキストで質問 |
+| `multipart/form-data` | `files`（必須、PNG/JPEG 1枚、5MB以下）、`message`（任意） | 画像について質問。`message` が空なら画像の説明を依頼 |
+
+空の質問や、空または PNG/JPEG 以外の Content-Type の画像には HTTP 400 を返します。画像の内容自体は検証しません。画像入力には OVMS 側で Vision Language Model（VLM）を使用する必要があります。このプロジェクトの `compose.yaml` は Gemma 4 E4B を VLM として起動します。
+
 ### プロキシと応答補正
 
 OVMS のチャット応答では `id` が省略されることがあります。OpenAI SDK が期待する形式に合わせるため、`OvmsCompatibilityConfiguration` で不足する `id` を生成して追加します。これにより、ID の欠落による回答の読み取りエラーを防ぎます。
@@ -96,7 +107,7 @@ spring.ai.openai.chat.model=${OVMS_MODEL:gemma4-e4b}
 
 ## 3. 質問する
 
-ブラウザで http://localhost:8080/ を開き、質問を入力して送信します。Deep Chat 2.5.1 とそのライセンスは `src/main/resources/static/lib/deep-chat/2.5.1/` に配置しています。
+Windows のブラウザで http://localhost:8080/ を開き、質問を入力して送信します。Deep Chat 2.5.1 とそのライセンスは `src/main/resources/static/lib/deep-chat/2.5.1/` に配置しています。
 
 バンドルの取得元は `https://unpkg.com/deep-chat@2.5.1/dist/deepChat.bundle.js` です。
 
